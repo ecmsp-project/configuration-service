@@ -6,4 +6,9 @@ build_windows:
 build_macos:
 	set GOOS=darwin
 	set GOARCH=amd64
-	go build -o ../manager main.go
+	go build -o ../manager-macos main.go
+
+build_linux:
+	set GOOS=linux
+	set GOARCH=amd64
+	go build -o ../manager-linux main.go
