@@ -1,0 +1,67 @@
+name: Build and deploy Docker images to GCP AR
+
+on:
+    workflow_run:
+        workflows: [<workflow_name>]
+        types:
+            - completed 
+        branches: [main, development]
+
+    workflow_dispatch:
+
+jobs:
+    build_deploy:
+        runs-on: ubuntu-latest
+        if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+        steps:
+            - 
+                name: Check out code
+                uses: actions/checkout@v3
+
+            - 
+                name: Set up JDK 21
+                uses: actions/setup-java@v4
+                with:
+                    java-version: "21"
+                    distribution: "temurin"
+                cache: "maven"
+
+            - 
+                name: Authenticate to Google Cloud
+                uses: google-github-actions/auth@v1
+                with:
+                    credentials_json: ${{ secrets.ECMSP_REGISTRY_PUSHER_GCP_SA_KEY }}
+
+            - 
+                name: Setup gcloud CLI
+                uses: google-github-actions/setup-gcloud@v2
+                with:
+                    version: "latest"
+                    project_id: ecmsp
+
+            - 
+                name: Install gcloud auth
+                run: gcloud components install gke-gcloud-auth-plugin
+
+            - 
+                name: Build, tag, and push backend Docker image to GCP Artifact Registry
+                env:
+                    GITHUB_REPOSITORY: ${{ github.repository }}
+                    IMAGE_TAG: ${{ github.sha }}
+                run: |
+                    REPO_NAME=$(basename $GITHUB_REPOSITORY)
+                    IMAGE_NAME="europe-west1-docker.pkg.dev/ecmsp-466719/ecmsp-dev/$REPO_NAME"
+
+                    docker build -t $IMAGE_NAME:$IMAGE_TAG -t $IMAGE_NAME:latest -f ./Dockerfile .
+                    docker push $IMAGE_NAME:$IMAGE_TAG
+                    docker push $IMAGE_NAME:latest
+
+
+    on-failure:
+        runs-on: ubuntu-latest
+        if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+
+        steps:
+        - run: echo 'The triggering workflow failed'
+        

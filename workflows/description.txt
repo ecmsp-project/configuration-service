@@ -1,0 +1,10 @@
+Przy PR na branch development:
+- wykonuje się workflow do testów i skanowania repozytorium 
+- po skończonych testach, wykonuje się workflow do budowania i wypychania obrazu na GCP AR
+
+Przy PR na branch main:
+- wykonuje się workflow do testów i skanowania repozytorium
+- (opcjonalnie: budowanie i wypychanie obrazu do sprawdzania działania aplikacji)
+
+Przy pushu na branch main:
+- wykonuje się workflow do do budowania i wypychania obrzu na GCP AR 
