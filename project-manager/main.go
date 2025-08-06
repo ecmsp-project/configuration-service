@@ -38,7 +38,7 @@ func ReadRepositoriesFromFile(path string) ([]string, error) {
 
 func main() {
 	repoPath := flag.String("path", "./repo-paths", "Provide a path for repository names file")
-	destPath := flag.String("destination", "../", "Provide a destination path for cloned repositories")
+	destPath := flag.String("destination", "../../", "Provide a destination path for cloned repositories")
 
 	flag.Parse()
 
