@@ -1,0 +1,252 @@
+name: ecmsp-full
+
+services:
+
+    product-service:
+        build:
+            context: ../product-service
+            dockerfile: Dockerfile
+        container_name: product-service
+        ports:
+            - "${PRODUCT_SERVICE_PORT:?error}:8080"
+        env_file:
+            -
+                path: ../product-service/docker/app-env.txt
+                required: false
+        environment:
+            - SPRING_PROFILES_ACTIVE=${PRODUCT_SERVICE_SPRING_PROFILES_ACTIVE:-compose}
+        depends_on:
+            product-service-db:
+                restart: true
+                condition: service_healthy
+            kafka:
+                condition: service_healthy
+        profiles: [product-service]
+    #
+    product-service-db:
+        image: postgres:15-alpine
+        container_name: product-service-db
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+            interval: 10s
+            retries: 5
+            start_period: 30s
+            timeout: 10s
+        ports:
+            - "${PRODUCT_SERVICE_DB_PORT:?error}:5432"
+        volumes:
+            - ../product-service/docker/init.sql:/docker-entrypoint-initdb.d/init.sql
+            - product-service-db:/var/lib/postgresql/data
+        secrets:
+            - product-service-db-password
+        environment:
+            - POSTGRES_USER=admin
+            - POSTGRES_DB=product-service-db
+            - POSTGRES_PASSWORD_FILE=/run/secrets/product-service-db-password
+        env_file:
+            -
+                path: ../product-service/docker/database-env.txt
+                required: false
+        profiles: [product-service]
+    #
+
+    order-service:
+        build:
+            context: ../order-service
+            dockerfile: Dockerfile
+        container_name: order-service
+        ports:
+            - "${ORDER_SERVICE_PORT:?error}:8080"
+        env_file:
+            -
+                path: ../order-service/docker/app-env.txt
+                required: false
+        environment:
+            - SPRING_PROFILES_ACTIVE=${ORDER_SERVICE_SPRING_PROFILES_ACTIVE:-compose}
+        depends_on:
+            order-service-db:
+                restart: true
+                condition: service_healthy
+            kafka:
+                condition: service_healthy
+        profiles: [order-service]
+    #
+    order-service-db:
+        image: postgres:15-alpine
+        container_name: order-service-db
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+            interval: 10s
+            retries: 5
+            start_period: 30s
+            timeout: 10s
+        ports:
+            - "${ORDER_SERVICE_DB_PORT:?error}:5432"
+        volumes:
+            - ../order-service/docker/init.sql:/docker-entrypoint-initdb.d/init.sql
+            - order-service-db:/var/lib/postgresql/data
+        secrets:
+            - order-service-db-password
+        environment:
+            - POSTGRES_USER=admin
+            - POSTGRES_DB=order-service-db
+            - POSTGRES_PASSWORD_FILE=/run/secrets/order-service-db-password
+        env_file:
+            -
+                path: ../order-service/docker/database-env.txt
+                required: false
+        profiles: [order-service]
+    #
+
+    payment-service:
+        build:
+            context: ../payment-service
+            dockerfile: Dockerfile
+        container_name: payment-service
+        ports:
+            - "${PAYMENT_SERVICE_PORT:?error}:8080"
+        env_file:
+            -
+                path: ../payment-service/docker/app-env.txt
+                required: false
+        environment:
+            - SPRING_PROFILES_ACTIVE=${PAYMENT_SERVICE_SPRING_PROFILES_ACTIVE:-compose}
+        depends_on:
+            payment-service-db:
+                restart: true
+                condition: service_healthy
+            kafka:
+                condition: service_healthy
+        profiles: [payment-service]
+    #
+    payment-service-db:
+        image: postgres:15-alpine
+        container_name: payment-service-db
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+            interval: 10s
+            retries: 5
+            start_period: 30s
+            timeout: 10s
+        ports:
+            - "${PAYMENT_SERVICE_DB_PORT:?error}:5432"
+        volumes:
+            - ../payment-service/docker/init.sql:/docker-entrypoint-initdb.d/init.sql
+            - payment-service-db:/var/lib/postgresql/data
+        secrets:
+            - payment-service-db-password
+        environment:
+            - POSTGRES_USER=admin
+            - POSTGRES_DB=payment-service-db
+            - POSTGRES_PASSWORD_FILE=/run/secrets/payment-service-db-password
+        env_file:
+            -
+                path: ../payment-service/docker/database-env.txt
+                required: false
+        profiles: [payment-service]
+    #
+
+    cart-service:
+        build:
+            context: ../cart-service
+            dockerfile: Dockerfile
+        container_name: cart-service
+        ports:
+            - "${CART_SERVICE_PORT:?error}:8080"
+        env_file:
+            -
+                path: ../cart-service/docker/app-env.txt
+                required: false
+        environment:
+            - SPRING_PROFILES_ACTIVE=${CART_SERVICE_SPRING_PROFILES_ACTIVE:-compose}
+        depends_on:
+            cart-service-db:
+                restart: true
+                condition: service_healthy
+            kafka:
+                condition: service_healthy
+        profiles: [cart-service]
+    #
+    cart-service-db:
+        image: postgres:15-alpine
+        container_name: cart-service-db
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+            interval: 10s
+            retries: 5
+            start_period: 30s
+            timeout: 10s
+        ports:
+            - "${CART_SERVICE_DB_PORT:?error}:5432"
+        volumes:
+            - ../cart-service/docker/init.sql:/docker-entrypoint-initdb.d/init.sql
+            - cart-service-db:/var/lib/postgresql/data
+        secrets:
+            - cart-service-db-password
+        environment:
+            - POSTGRES_USER=admin
+            - POSTGRES_DB=cart-service-db
+            - POSTGRES_PASSWORD_FILE=/run/secrets/cart-service-db-password
+        env_file:
+            -
+                path: ../cart-service/docker/database-env.txt
+                required: false
+        profiles: [cart-service]
+    #
+
+    kafka:
+        image: apache/kafka:3.7.0
+        container_name: broker
+        environment:
+            KAFKA_NODE_ID: 1
+            KAFKA_PROCESS_ROLES: broker,controller
+            KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9094
+            KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:9092,EXTERNAL://localhost:9094
+            KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
+            KAFKA_CONTROLLER_QUORUM_VOTERS: 1@broker:9093
+            KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+            KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+            KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+            KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+        ports:
+            - "9094:9094"
+        healthcheck:
+            test:
+              [
+                  "CMD-SHELL",
+                  "./opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 > /dev/null 2>&1",
+              ]
+            interval: 10s
+            timeout: 10s
+            retries: 5
+        profiles: [kafka]
+
+    kafka-ui:
+        image: provectuslabs/kafka-ui:latest
+        container_name: kafka-ui
+        ports:
+            - "8088:8080"
+        environment:
+            KAFKA_CLUSTERS_0_NAME: local
+            KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: broker:9092
+            KAFKA_CLUSTERS_0_READONLY: "false"
+            # KAFKA_CLUSTERS_0_SCHEMAREGISTRY: http://schema-registry:8081
+        depends_on:
+            kafka:
+                condition: service_healthy
+        profiles: [kafka]
+
+secrets:
+    product-service-db-password:
+        file: ../product-service/docker/database-password.txt
+    order-service-db-password:
+        file: ../order-service/docker/database-password.txt
+    payment-service-db-password:
+        file: ../payment-service/docker/database-password.txt
+    cart-service-db-password:
+        file: ../cart-service/docker/database-password.txt
+volumes:
+    product-service-db:
+    order-service-db:
+    payment-service-db:
+    cart-service-db:
