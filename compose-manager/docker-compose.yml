@@ -14,6 +14,8 @@ services:
                 required: false
         environment:
             - SPRING_PROFILES_ACTIVE=${GATEWAY_SERVICE_SPRING_PROFILES_ACTIVE:-compose}
+        args:
+            MAVEN_CACHE: /home/
         profiles: [gateway-service]
 
     user-service:
@@ -259,8 +261,8 @@ services:
                 path: ${ESCAPE_PATH}/frontend/.env
                 required: false
         environment:
+            - SOMETHING=something
         profiles: [frontend]
-	#
 
     kafka:
         image: apache/kafka:3.7.0

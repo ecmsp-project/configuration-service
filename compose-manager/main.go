@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"path"
@@ -12,6 +11,8 @@ import (
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/manifoldco/promptui"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"golang.org/x/exp/maps"
 )
 
@@ -49,11 +50,11 @@ func getRepoNameToPathMapping(repoPaths []string) map[string]string {
 }
 
 type Result struct {
-	repoMap            map[string]string
-	currentService     string
-	selectedCluster    []string
+	repoMap         map[string]string
+	currentService  string
+	selectedCluster []string
 
-	shouldCloneMissing string
+	shouldCloneMissing   string
 	shouldStartCurrentDb string
 
 	destPath string
@@ -85,24 +86,25 @@ func PromptUI(repoMap map[string]string) *Result {
 		return nil
 	}
 	bPrompt := promptui.Prompt{
-		Label:    "Should clone missing repositories (in cluster) [yes/no]:",
+		Label:    "Should clone missing repositories (in cluster) [yes/no]",
 		Default:  "no",
 		Validate: validate,
 	}
 	shouldCloneMissing, err := bPrompt.Run()
 	if err != nil {
-		fmt.Printf("Prompt failed %v\n", err)
+		log.Error().Msgf("Prompt failed %v\n", err)
 		return nil
 	}
 
+	// TODO: print all services except the one the user is working on
 	var selected []string
 	cPrompt := &survey.MultiSelect{
-		Message: "Select services to run in Docker cluster (except the one you are currently developing):",
+		Message: "Select services to run in Docker cluster (except the one you are currently developing)",
 		Options: maps.Keys(repoMap),
 	}
 	err = survey.AskOne(cPrompt, &selected)
 	if err != nil {
-		fmt.Println("error occured:", err)
+		log.Error().Msgf("error occured: %v", err)
 		return nil
 	}
 
@@ -113,97 +115,128 @@ func PromptUI(repoMap map[string]string) *Result {
 		return nil
 	}
 	dPrompt := promptui.Prompt{
-		Label:    "Should run DB (dev) in the service you are currently developing [yes/no]:",
+		Label:    "Should run DB (dev) in the service you are currently developing [yes/no]",
 		Default:  "no",
 		Validate: validate,
 	}
 	shouldStartCurrentDb, err := dPrompt.Run()
 	if err != nil {
-		fmt.Printf("Prompt failed %v\n", err)
+		log.Error().Msgf("Prompt failed %v\n", err)
 		return nil
 	}
 
 	return &Result{
-		repoMap:            repoMap,
-		currentService:     currentServiceName,
-		selectedCluster:    selected,
+		repoMap:         repoMap,
+		currentService:  currentServiceName,
+		selectedCluster: selected,
 
-		shouldCloneMissing: shouldCloneMissing,
+		shouldCloneMissing:   shouldCloneMissing,
 		shouldStartCurrentDb: shouldStartCurrentDb,
 	}
 }
 
-func cloneMissingRepos(result *Result) {
+func cloneMissingRepos(result *Result) error {
+	log.Info().Msg("cloning missing repositories")
+
 	if result.shouldCloneMissing == "no" {
-		return
+		// TODO: check if all repositories are present then. If not, print and return error
+		return nil
 	}
 
 	for _, repoName := range result.selectedCluster {
 		repoFolder := path.Join(result.destPath, repoName)
 
+		_, err := os.Stat(repoFolder)
+		if err == nil {
+			log.Warn().Msgf("repository is already cloned: %s", repoName)
+			continue 
+		}
+
 		cmd := exec.Command("git", "clone", result.repoMap[repoName], repoFolder)
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 
-		if err := cmd.Run(); err != nil {
-			fmt.Printf("can't exec command for repo: %s %s\n", repoName, err)
-			return
+		if err = cmd.Run(); err != nil {
+			log.Error().Msgf("can't exec command for repo: %s %s\n", repoName, err)
+			return err
 		}
 	}
+
+	return nil
 }
 
-func getProfilesOptions(result *Result) string {
-	profiles := "--profile kafka"
+func getArgsOptions(result *Result) []string {
+
+	args := []string{"compose"}
 
 	for _, repoName := range result.selectedCluster {
-		profiles = profiles + fmt.Sprintf(" --profile %s", repoName)
+		args = append(args, "--profile", repoName)
 	}
 
-	return profiles
+	args = append(args, "--profile", "kafka")
+	args = append(args, "up", "-d")
+
+	return args
 }
 
-func startCurrentDb(result *Result) {
+func startCurrentDb(result *Result) error {
+	log.Info().Msgf("starting currently developed DB in %s", result.currentService)
+
 	if result.shouldStartCurrentDb == "no" {
-		return 
+		return nil
 	}
 
 	composeFilePath := path.Join(result.destPath, result.currentService)
-	composeFilePath = composeFilePath + "/docker"
+	composeFilePath = composeFilePath + "/docker/docker-compose.yml"
 
 	service := fmt.Sprintf("%s-db-dev", result.currentService)
 
-	cmd := exec.Command("docker", "compose", "-f", composeFilePath, "up", service)
-	cmd.Stdout = os.Stdout 
-	cmd.Stderr = os.Stderr 
+	cmd := exec.Command("docker", "compose", "-f", composeFilePath, "up", service, "-d")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 
 	if err := cmd.Run(); err != nil {
-		fmt.Printf("can't exec 'docker compose <profiles> up' command to start current db")
+		log.Error().Msg("can't exec 'docker compose <profiles> up' command to start current db")
+		return err
 	}
+
+	return nil 
 }
 
 func RunCluster(result *Result) {
 
 	// Clone missing repositories
-	cloneMissingRepos(result)
+	err := cloneMissingRepos(result)
+	if err != nil {
+		return 
+	}
 
-	// Create --profile string to apply in docker compose command
-	profiles := getProfilesOptions()
+	// Run internal db in current service
+	err = startCurrentDb(result)
+	if err != nil {
+		return 
+	}
 
-	// Run internal db in current service 
-	startCurrentDb(result)
+	// Run Docker compose command
+	log.Info().Msg("executing docker compose to setup cluster")
 
-	// Run Docker compose command 
-	cmd := exec.Command("docker", "compose", profiles, "up")
-	cmd.Stdout = os.Stdout 
-	cmd.Stderr = os.Stderr 
+	// Create arguments to run cluster 
+	args := getArgsOptions(result)
+
+	cmd := exec.Command("docker", args...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 
 	if err := cmd.Run(); err != nil {
-		fmt.Printf("can't exec 'docker compose <profiles> up' command")
+		log.Error().Msg("can't exec 'docker compose <profiles> up' command")
+		return 
 	}
 
 }
 
 func main() {
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+
 	repoPathsFile := flag.String("path", "./repo-paths.txt", "Provide a path for repository paths file")
 	destPath := flag.String("destination", "../../", "Provide a destination path for cloned repositories")
 
@@ -211,7 +244,7 @@ func main() {
 
 	repoPaths, err := ReadRepositoriesFromFile(*repoPathsFile)
 	if err != nil {
-		log.Fatalf("can't read repositories names from file: %s", err)
+		log.Error().Msgf("can't read repositories names from file: %s", err)
 	}
 
 	repoMap := getRepoNameToPathMapping(repoPaths)
