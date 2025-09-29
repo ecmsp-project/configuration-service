@@ -6,6 +6,8 @@ services:
             context: ${ESCAPE_PATH}/gateway-service/
             dockerfile: Dockerfile
         container_name: gateway-service
+        volumes:
+            - ${HOME_PATH}/.m2:/root/.m2
         ports:
             - "${GATEWAY_SERVICE_PORT:?error}:8080"
         env_file:
@@ -14,8 +16,6 @@ services:
                 required: false
         environment:
             - SPRING_PROFILES_ACTIVE=${GATEWAY_SERVICE_SPRING_PROFILES_ACTIVE:-compose}
-        args:
-            MAVEN_CACHE: /home/
         profiles: [gateway-service]
 
     user-service:
@@ -23,6 +23,8 @@ services:
             context: ${ESCAPE_PATH}/user-service/
             dockerfile: Dockerfile
         container_name: user-service
+        volumes:
+            - ${HOME_PATH}/.m2:/root/.m2
         ports:
             - "${USER_SERVICE_PORT:?error}:8080"
         env_file:
@@ -50,7 +52,7 @@ services:
         environment:
             - POSTGRES_USER=admin
             - POSTGRES_DB=user-service-db
-            - POSTGRES_PASSWORD_FILE=/run/secrets/user-service-db
+            - POSTGRES_PASSWORD_FILE=/run/secrets/user-service-db-password
         env_file:
             -
                 path: ${ESCAPE_PATH}/user-service-db/docker/database-env.txt
@@ -62,6 +64,8 @@ services:
             context: ${ESCAPE_PATH}/product-service
             dockerfile: Dockerfile
         container_name: product-service
+        volumes:
+            - ${HOME_PATH}/.m2:/root/.m2
         ports:
             - "${PRODUCT_SERVICE_PORT:?error}:8080"
         env_file:
@@ -110,6 +114,8 @@ services:
             context: ${ESCAPE_PATH}/order-service
             dockerfile: Dockerfile
         container_name: order-service
+        volumes:
+            - ${HOME_PATH}/.m2:/root/.m2
         ports:
             - "${ORDER_SERVICE_PORT:?error}:8080"
         env_file:
@@ -158,6 +164,8 @@ services:
             context: ${ESCAPE_PATH}/payment-service
             dockerfile: Dockerfile
         container_name: payment-service
+        volumes:
+            - ${HOME_PATH}/.m2:/root/.m2
         ports:
             - "${PAYMENT_SERVICE_PORT:?error}:8080"
         env_file:
@@ -206,6 +214,8 @@ services:
             context: ${ESCAPE_PATH}/cart-service
             dockerfile: Dockerfile
         container_name: cart-service
+        volumes:
+            - ${HOME_PATH}/.m2:/root/.m2
         ports:
             - "${CART_SERVICE_PORT:?error}:8080"
         env_file:
