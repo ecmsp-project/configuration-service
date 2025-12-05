@@ -1,0 +1,2 @@
+POSTGRES_DB=product-service-db
+POSTGRES_USER=admin

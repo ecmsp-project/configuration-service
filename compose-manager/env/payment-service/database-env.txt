@@ -1,0 +1,2 @@
+POSTGRES_DB=payment-service-db
+POSTGRES_USER=admin

@@ -5,34 +5,50 @@ services:
         build:
             context: ${ESCAPE_PATH}/gateway-service/
             dockerfile: Dockerfile
-        container_name: gateway-service
+        # container_name: gateway-service
         volumes:
             - ${HOME_PATH}/.m2:/root/.m2
+        secrets:
+            - jwt-public-key
         ports:
             - "${GATEWAY_SERVICE_PORT:?error}:8080"
+            - "${GATEWAY_SERVICE_GRPC_PORT:?error}:50051"
         env_file:
             -
-                path: ${ESCAPE_PATH}/gateway-service/docker/app-env.txt
+                path: ./env/gateway-service/app-env.txt
                 required: false
         environment:
             - SPRING_PROFILES_ACTIVE=${GATEWAY_SERVICE_SPRING_PROFILES_ACTIVE:-compose}
+            - JWT_PUBLIC_KEY_PATH=file:/run/secrets/jwt-public-key
+        depends_on:
+            kafka:
+                condition: service_healthy            
         profiles: [gateway-service]
 
     user-service:
         build:
             context: ${ESCAPE_PATH}/user-service/
             dockerfile: Dockerfile
-        container_name: user-service
+        # container_name: user-service
         volumes:
             - ${HOME_PATH}/.m2:/root/.m2
+        secrets:
+            - jwt-private-key
         ports:
             - "${USER_SERVICE_PORT:?error}:8080"
         env_file:
             -
-                path: ${ESCAPE_PATH}/user-service/docker/app-env.txt
+                path: ./env/user-service/app-env.txt
                 required: false
         environment:
             - SPRING_PROFILES_ACTIVE=${USER_SERVICE_SPRING_PROFILES_ACTIVE:-compose}
+            - AUTH_SECRET_KEY_FILE=/run/secrets/jwt-private-key
+        depends_on:
+            user-service-db:
+                restart: true
+                condition: service_healthy
+            kafka:
+                condition: service_healthy            
         profiles: [user-service]
     user-service-db:
         image: postgres:15-alpine
@@ -55,7 +71,7 @@ services:
             - POSTGRES_PASSWORD_FILE=/run/secrets/user-service-db-password
         env_file:
             -
-                path: ${ESCAPE_PATH}/user-service-db/docker/database-env.txt
+                path: ./env/user-service-db/database-env.txt
                 required: false
         profiles: [user-service]
 
@@ -63,14 +79,15 @@ services:
         build:
             context: ${ESCAPE_PATH}/product-service
             dockerfile: Dockerfile
-        container_name: product-service
+        # container_name: product-service
         volumes:
             - ${HOME_PATH}/.m2:/root/.m2
         ports:
             - "${PRODUCT_SERVICE_PORT:?error}:8080"
+            - "${PRODUCT_SERVICE_GRPC_PORT:?error}:50051"
         env_file:
             -
-                path: ${ESCAPE_PATH}/product-service/docker/app-env.txt
+                path: ./env/product-service/app-env.txt
                 required: false
         environment:
             - SPRING_PROFILES_ACTIVE=${PRODUCT_SERVICE_SPRING_PROFILES_ACTIVE:-compose}
@@ -84,7 +101,7 @@ services:
     #
     product-service-db:
         image: postgres:15-alpine
-        container_name: product-service-db
+        # container_name: product-service-db
         healthcheck:
             test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
             interval: 10s
@@ -94,7 +111,8 @@ services:
         ports:
             - "${PRODUCT_SERVICE_DB_PORT:?error}:5432"
         volumes:
-            - ${ESCAPE_PATH}/product-service/docker/init.sql:/docker-entrypoint-initdb.d/init.sql
+            - ${ESCAPE_PATH}/product-service/docker/init.sql:/docker-entrypoint-initdb.d/init2.sql
+            - ${ESCAPE_PATH}/product-service/docker/init2.sql:/docker-entrypoint-initdb.d/init3.sql
             - product-service-db:/var/lib/postgresql/data
         secrets:
             - product-service-db-password
@@ -104,7 +122,7 @@ services:
             - POSTGRES_PASSWORD_FILE=/run/secrets/product-service-db-password
         env_file:
             -
-                path: ${ESCAPE_PATH}/product-service/docker/database-env.txt
+                path: ./env/product-service/database-env.txt
                 required: false
         profiles: [product-service]
     #
@@ -113,14 +131,15 @@ services:
         build:
             context: ${ESCAPE_PATH}/order-service
             dockerfile: Dockerfile
-        container_name: order-service
+        # container_name: order-service
         volumes:
             - ${HOME_PATH}/.m2:/root/.m2
         ports:
             - "${ORDER_SERVICE_PORT:?error}:8080"
+            - "${ORDER_SERVICE_GRPC_PORT:?error}:50051"
         env_file:
             -
-                path: ${ESCAPE_PATH}/order-service/docker/app-env.txt
+                path: ./env/order-service/app-env.txt
                 required: false
         environment:
             - SPRING_PROFILES_ACTIVE=${ORDER_SERVICE_SPRING_PROFILES_ACTIVE:-compose}
@@ -134,7 +153,7 @@ services:
     #
     order-service-db:
         image: postgres:15-alpine
-        container_name: order-service-db
+        # container_name: order-service-db
         healthcheck:
             test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
             interval: 10s
@@ -154,7 +173,7 @@ services:
             - POSTGRES_PASSWORD_FILE=/run/secrets/order-service-db-password
         env_file:
             -
-                path: ${ESCAPE_PATH}/order-service/docker/database-env.txt
+                path: ./env/order-service/database-env.txt
                 required: false
         profiles: [order-service]
     #
@@ -163,14 +182,15 @@ services:
         build:
             context: ${ESCAPE_PATH}/payment-service
             dockerfile: Dockerfile
-        container_name: payment-service
+        # container_name: payment-service
         volumes:
             - ${HOME_PATH}/.m2:/root/.m2
         ports:
             - "${PAYMENT_SERVICE_PORT:?error}:8080"
+            - "${PAYMENT_SERVICE_GRPC_PORT:?error}:50051"
         env_file:
             -
-                path: ${ESCAPE_PATH}/payment-service/docker/app-env.txt
+                path: ./env/payment-service/app-env.txt
                 required: false
         environment:
             - SPRING_PROFILES_ACTIVE=${PAYMENT_SERVICE_SPRING_PROFILES_ACTIVE:-compose}
@@ -184,7 +204,7 @@ services:
     #
     payment-service-db:
         image: postgres:15-alpine
-        container_name: payment-service-db
+        # container_name: payment-service-db
         healthcheck:
             test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
             interval: 10s
@@ -204,7 +224,7 @@ services:
             - POSTGRES_PASSWORD_FILE=/run/secrets/payment-service-db-password
         env_file:
             -
-                path: ${ESCAPE_PATH}/payment-service/docker/database-env.txt
+                path: ./env/payment-service/database-env.txt
                 required: false
         profiles: [payment-service]
     #
@@ -213,14 +233,15 @@ services:
         build:
             context: ${ESCAPE_PATH}/cart-service
             dockerfile: Dockerfile
-        container_name: cart-service
+        # container_name: cart-service
         volumes:
             - ${HOME_PATH}/.m2:/root/.m2
         ports:
             - "${CART_SERVICE_PORT:?error}:8080"
+            - "${CART_SERVICE_GRPC_PORT:?error}:50051"
         env_file:
             -
-                path: ${ESCAPE_PATH}/cart-service/docker/app-env.txt
+                path: ./env/cart-service/app-env.txt
                 required: false
         environment:
             - SPRING_PROFILES_ACTIVE=${CART_SERVICE_SPRING_PROFILES_ACTIVE:-compose}
@@ -234,7 +255,7 @@ services:
     #
     cart-service-db:
         image: postgres:15-alpine
-        container_name: cart-service-db
+        # container_name: cart-service-db
         healthcheck:
             test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
             interval: 10s
@@ -254,36 +275,87 @@ services:
             - POSTGRES_PASSWORD_FILE=/run/secrets/cart-service-db-password
         env_file:
             -
-                path: ${ESCAPE_PATH}/cart-service/docker/database-env.txt
+                path: ./env/cart-service/database-env.txt
                 required: false
         profiles: [cart-service]
     #
 
-    frontend:
+    statistics-service:
         build:
-            context: ${ESCAPE_PATH}/frontend/
+            context: ${ESCAPE_PATH}/statistics-service
             dockerfile: Dockerfile
-        container_name: frontend
+        # container_name: statistics-service
+        volumes:
+            - ${HOME_PATH}/.m2:/root/.m2
         ports:
-            - "${FRONTEND_PORT:?error}:8080"
+            - "${STATISTICS_SERVICE_PORT:?error}:8080"
+            - "${STATISTICS_SERVICE_GRPC_PORT:?error}:50051"
         env_file:
-            - 
-                path: ${ESCAPE_PATH}/frontend/.env
+            -
+                path: ./env/statistics-service/app-env.txt
                 required: false
         environment:
-            - SOMETHING=something
-        profiles: [frontend]
+            - SPRING_PROFILES_ACTIVE=${STATISTICS_SERVICE_SPRING_PROFILES_ACTIVE:-compose}
+        depends_on:
+            statistics-service-db:
+                restart: true
+                condition: service_healthy
+            kafka:
+                condition: service_healthy
+        profiles: [statistics-service]
+    #
+    statistics-service-db:
+        image: postgres:15-alpine
+        # container_name: statistics-service-db
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+            interval: 10s
+            retries: 5
+            start_period: 30s
+            timeout: 10s
+        ports:
+            - "${STATISTICS_SERVICE_DB_PORT:?error}:5432"
+        volumes:
+            - ${ESCAPE_PATH}/statistics-service/docker/init.sql:/docker-entrypoint-initdb.d/init.sql
+            - statistics-service-db:/var/lib/postgresql/data
+        secrets:
+            - statistics-service-db-password
+        environment:
+            - POSTGRES_USER=admin
+            - POSTGRES_DB=statistics-service-db
+            - POSTGRES_PASSWORD_FILE=/run/secrets/statistics-service-db-password
+        env_file:
+            -
+                path: ./env/statistics-service/database-env.txt
+                required: false
+        profiles: [statistics-service]
+    #
+
+    # frontend:
+    #     build:
+    #         context: ${ESCAPE_PATH}/frontend/
+    #         dockerfile: Dockerfile
+    #     container_name: frontend
+    #     ports:
+    #         - "${FRONTEND_PORT:?error}:5173"
+    #     env_file:
+    #         - 
+    #             path: ./env/frontend/app-env.txt
+    #             required: false
+    #     environment:
+    #         - SOMETHING=something
+    #     profiles: [frontend]
 
     kafka:
         image: apache/kafka:3.7.0
-        container_name: broker
+        # container_name: broker
         environment:
             KAFKA_NODE_ID: 1
             KAFKA_PROCESS_ROLES: broker,controller
             KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9094
-            KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:9092,EXTERNAL://localhost:9094
+            KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,EXTERNAL://localhost:9094
             KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
-            KAFKA_CONTROLLER_QUORUM_VOTERS: 1@broker:9093
+            KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
             KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
             KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
             KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
@@ -303,12 +375,12 @@ services:
 
     kafka-ui:
         image: provectuslabs/kafka-ui:latest
-        container_name: kafka-ui
+        # container_name: kafka-ui
         ports:
             - "8088:8080"
         environment:
             KAFKA_CLUSTERS_0_NAME: local
-            KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: broker:9092
+            KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
             KAFKA_CLUSTERS_0_READONLY: "false"
         depends_on:
             kafka:
@@ -317,18 +389,26 @@ services:
 
 secrets:
     product-service-db-password:
-        file: ${ESCAPE_PATH}/product-service/docker/database-password.txt
+        file: ./env/product-service/database-password.txt
     order-service-db-password:
-        file: ${ESCAPE_PATH}/order-service/docker/database-password.txt
+        file: ./env/order-service/database-password.txt
     payment-service-db-password:
-        file: ${ESCAPE_PATH}/payment-service/docker/database-password.txt
+        file: ./env/payment-service/database-password.txt
     cart-service-db-password:
-        file: ${ESCAPE_PATH}/cart-service/docker/database-password.txt
+        file: ./env/cart-service/database-password.txt
     user-service-db-password:
-        file: ${ESCAPE_PATH}/user-service/docker/database-password.txt
+        file: ./env/user-service/database-password.txt
+    statistics-service-db-password:
+        file: ./env/statistics-service/database-password.txt
+    jwt-public-key:
+        file: ./env/keys/local.public.key
+    jwt-private-key:
+        file: ./env/keys/local.private.key
+
 volumes:
     product-service-db:
     order-service-db:
     payment-service-db:
     cart-service-db:
     user-service-db:
+    statistics-service-db:
