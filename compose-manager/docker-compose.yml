@@ -8,8 +8,7 @@ services:
         # container_name: gateway-service
         volumes:
             - ${HOME_PATH}/.m2:/root/.m2
-        secrets:
-            - jwt-public-key
+            - ./env/keys:/keys
         ports:
             - "${GATEWAY_SERVICE_PORT:?error}:8080"
             - "${GATEWAY_SERVICE_GRPC_PORT:?error}:50051"
@@ -19,7 +18,7 @@ services:
                 required: false
         environment:
             - SPRING_PROFILES_ACTIVE=${GATEWAY_SERVICE_SPRING_PROFILES_ACTIVE:-compose}
-            - JWT_PUBLIC_KEY_PATH=file:/run/secrets/jwt-public-key
+            - JWT_PUBLIC_KEY_PATH=file:/keys/local.public.key
         depends_on:
             kafka:
                 condition: service_healthy            
@@ -32,8 +31,7 @@ services:
         # container_name: user-service
         volumes:
             - ${HOME_PATH}/.m2:/root/.m2
-        secrets:
-            - jwt-private-key
+            - ./env/keys:/keys
         ports:
             - "${USER_SERVICE_PORT:?error}:8080"
         env_file:
@@ -42,7 +40,8 @@ services:
                 required: false
         environment:
             - SPRING_PROFILES_ACTIVE=${USER_SERVICE_SPRING_PROFILES_ACTIVE:-compose}
-            - AUTH_SECRET_KEY_FILE=/run/secrets/jwt-private-key
+            # - AUTH_SECRET_KEY_FILE=/run/secrets/jwt-private-key
+            - AUTH_TOKEN_GENERATOR_SECRET_KEY_FILE=/keys/local.private.key
         depends_on:
             user-service-db:
                 restart: true
@@ -400,10 +399,10 @@ secrets:
         file: ./env/user-service/database-password.txt
     statistics-service-db-password:
         file: ./env/statistics-service/database-password.txt
-    jwt-public-key:
-        file: ./env/keys/local.public.key
-    jwt-private-key:
-        file: ./env/keys/local.private.key
+    # jwt-public-key:
+    #     file: ./env/keys/local.public.key
+    # jwt-private-key:
+    #     file: ./env/keys/local.private.key
 
 volumes:
     product-service-db:

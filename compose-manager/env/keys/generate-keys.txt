@@ -1,0 +1,2 @@
+openssl genrsa > local.private.key
+openssl rsa -in local.private.key -pubout > local.public.key
