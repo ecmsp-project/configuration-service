@@ -111,7 +111,7 @@ services:
             - "${PRODUCT_SERVICE_DB_PORT:?error}:5432"
         volumes:
             - ${ESCAPE_PATH}/product-service/docker/init.sql:/docker-entrypoint-initdb.d/init2.sql
-            - ${ESCAPE_PATH}/product-service/docker/init2.sql:/docker-entrypoint-initdb.d/init3.sql
+            - ${ESCAPE_PATH}/product-service/docker/init-2.sql:/docker-entrypoint-initdb.d/init3.sql
             - product-service-db:/var/lib/postgresql/data
         secrets:
             - product-service-db-password
