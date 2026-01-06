@@ -7,7 +7,6 @@ services:
             dockerfile: Dockerfile
         # container_name: gateway-service
         volumes:
-            - ${HOME_PATH}/.m2:/root/.m2
             - ./env/keys:/keys
         ports:
             - "${GATEWAY_SERVICE_PORT:?error}:8080"
@@ -32,7 +31,6 @@ services:
             dockerfile: Dockerfile
         # container_name: user-service
         volumes:
-            - ${HOME_PATH}/.m2:/root/.m2
             - ./env/keys:/keys
         ports:
             - "${USER_SERVICE_PORT:?error}:8080"
@@ -73,7 +71,7 @@ services:
             - POSTGRES_DB=user-service-db
             - POSTGRES_PASSWORD_FILE=/run/secrets/user-service-db-password
         networks:
-            - ecmsp-full    
+            - ecmsp-full
         env_file:
             -
                 path: ./env/user-service-db/database-env.txt
@@ -85,8 +83,6 @@ services:
             context: ${ESCAPE_PATH}/product-service
             dockerfile: Dockerfile
         # container_name: product-service
-        volumes:
-            - ${HOME_PATH}/.m2:/root/.m2
         ports:
             - "${PRODUCT_SERVICE_PORT:?error}:8080"
             - "${PRODUCT_SERVICE_GRPC_PORT:?error}:50051"
@@ -141,8 +137,6 @@ services:
             context: ${ESCAPE_PATH}/order-service
             dockerfile: Dockerfile
         # container_name: order-service
-        volumes:
-            - ${HOME_PATH}/.m2:/root/.m2
         ports:
             - "${ORDER_SERVICE_PORT:?error}:8080"
             - "${ORDER_SERVICE_GRPC_PORT:?error}:50051"
@@ -196,8 +190,6 @@ services:
             context: ${ESCAPE_PATH}/payment-service
             dockerfile: Dockerfile
         # container_name: payment-service
-        volumes:
-            - ${HOME_PATH}/.m2:/root/.m2
         ports:
             - "${PAYMENT_SERVICE_PORT:?error}:8080"
             - "${PAYMENT_SERVICE_GRPC_PORT:?error}:50051"
@@ -251,8 +243,6 @@ services:
             context: ${ESCAPE_PATH}/cart-service
             dockerfile: Dockerfile
         # container_name: cart-service
-        volumes:
-            - ${HOME_PATH}/.m2:/root/.m2
         ports:
             - "${CART_SERVICE_PORT:?error}:8080"
             - "${CART_SERVICE_GRPC_PORT:?error}:50051"
@@ -306,8 +296,6 @@ services:
             context: ${ESCAPE_PATH}/statistics-service
             dockerfile: Dockerfile
         # container_name: statistics-service
-        volumes:
-            - ${HOME_PATH}/.m2:/root/.m2
         ports:
             - "${STATISTICS_SERVICE_PORT:?error}:8080"
             - "${STATISTICS_SERVICE_GRPC_PORT:?error}:50051"
