@@ -19,9 +19,11 @@ services:
         environment:
             - SPRING_PROFILES_ACTIVE=${GATEWAY_SERVICE_SPRING_PROFILES_ACTIVE:-compose}
             - JWT_PUBLIC_KEY_PATH=file:/keys/local.public.key
+        networks:
+            - ecmsp-full
         depends_on:
             kafka:
-                condition: service_healthy            
+                condition: service_healthy
         profiles: [gateway-service]
 
     user-service:
@@ -42,12 +44,14 @@ services:
             - SPRING_PROFILES_ACTIVE=${USER_SERVICE_SPRING_PROFILES_ACTIVE:-compose}
             # - AUTH_SECRET_KEY_FILE=/run/secrets/jwt-private-key
             - AUTH_TOKEN_GENERATOR_SECRET_KEY_FILE=/keys/local.private.key
+        networks:
+            - ecmsp-full
         depends_on:
             user-service-db:
                 restart: true
                 condition: service_healthy
             kafka:
-                condition: service_healthy            
+                condition: service_healthy
         profiles: [user-service]
     user-service-db:
         image: postgres:15-alpine
@@ -68,6 +72,8 @@ services:
             - POSTGRES_USER=admin
             - POSTGRES_DB=user-service-db
             - POSTGRES_PASSWORD_FILE=/run/secrets/user-service-db-password
+        networks:
+            - ecmsp-full    
         env_file:
             -
                 path: ./env/user-service-db/database-env.txt
@@ -90,6 +96,8 @@ services:
                 required: false
         environment:
             - SPRING_PROFILES_ACTIVE=${PRODUCT_SERVICE_SPRING_PROFILES_ACTIVE:-compose}
+        networks:
+            - ecmsp-full
         depends_on:
             product-service-db:
                 restart: true
@@ -119,6 +127,8 @@ services:
             - POSTGRES_USER=admin
             - POSTGRES_DB=product-service-db
             - POSTGRES_PASSWORD_FILE=/run/secrets/product-service-db-password
+        networks:
+            - ecmsp-full
         env_file:
             -
                 path: ./env/product-service/database-env.txt
@@ -142,6 +152,8 @@ services:
                 required: false
         environment:
             - SPRING_PROFILES_ACTIVE=${ORDER_SERVICE_SPRING_PROFILES_ACTIVE:-compose}
+        networks:
+            - ecmsp-full
         depends_on:
             order-service-db:
                 restart: true
@@ -170,6 +182,8 @@ services:
             - POSTGRES_USER=admin
             - POSTGRES_DB=order-service-db
             - POSTGRES_PASSWORD_FILE=/run/secrets/order-service-db-password
+        networks:
+            - ecmsp-full
         env_file:
             -
                 path: ./env/order-service/database-env.txt
@@ -193,6 +207,8 @@ services:
                 required: false
         environment:
             - SPRING_PROFILES_ACTIVE=${PAYMENT_SERVICE_SPRING_PROFILES_ACTIVE:-compose}
+        networks:
+            - ecmsp-full
         depends_on:
             payment-service-db:
                 restart: true
@@ -221,6 +237,8 @@ services:
             - POSTGRES_USER=admin
             - POSTGRES_DB=payment-service-db
             - POSTGRES_PASSWORD_FILE=/run/secrets/payment-service-db-password
+        networks:
+            - ecmsp-full
         env_file:
             -
                 path: ./env/payment-service/database-env.txt
@@ -244,6 +262,8 @@ services:
                 required: false
         environment:
             - SPRING_PROFILES_ACTIVE=${CART_SERVICE_SPRING_PROFILES_ACTIVE:-compose}
+        networks:
+            - ecmsp-full
         depends_on:
             cart-service-db:
                 restart: true
@@ -272,6 +292,8 @@ services:
             - POSTGRES_USER=admin
             - POSTGRES_DB=cart-service-db
             - POSTGRES_PASSWORD_FILE=/run/secrets/cart-service-db-password
+        networks:
+            - ecmsp-full
         env_file:
             -
                 path: ./env/cart-service/database-env.txt
@@ -295,6 +317,8 @@ services:
                 required: false
         environment:
             - SPRING_PROFILES_ACTIVE=${STATISTICS_SERVICE_SPRING_PROFILES_ACTIVE:-compose}
+        networks:
+            - ecmsp-full
         depends_on:
             statistics-service-db:
                 restart: true
@@ -323,6 +347,8 @@ services:
             - POSTGRES_USER=admin
             - POSTGRES_DB=statistics-service-db
             - POSTGRES_PASSWORD_FILE=/run/secrets/statistics-service-db-password
+        networks:
+            - ecmsp-full
         env_file:
             -
                 path: ./env/statistics-service/database-env.txt
@@ -338,7 +364,7 @@ services:
     #     ports:
     #         - "${FRONTEND_PORT:?error}:5173"
     #     env_file:
-    #         - 
+    #         -
     #             path: ./env/frontend/app-env.txt
     #             required: false
     #     environment:
@@ -370,6 +396,8 @@ services:
             interval: 10s
             timeout: 10s
             retries: 5
+        networks:
+            - ecmsp-full
         profiles: [kafka]
 
     kafka-ui:
@@ -384,6 +412,8 @@ services:
         depends_on:
             kafka:
                 condition: service_healthy
+        networks:
+            - ecmsp-full
         profiles: [kafka]
 
 secrets:
@@ -411,3 +441,7 @@ volumes:
     cart-service-db:
     user-service-db:
     statistics-service-db:
+
+networks:
+  ecmsp-full:
+    driver: bridge
