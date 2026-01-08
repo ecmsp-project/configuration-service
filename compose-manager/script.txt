@@ -1,0 +1,2 @@
+Dependency initialization:
+docker compose --profile init run maven-init

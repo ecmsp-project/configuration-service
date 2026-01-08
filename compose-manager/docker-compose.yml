@@ -8,6 +8,7 @@ services:
         # container_name: gateway-service
         volumes:
             - ./env/keys:/keys
+            - maven-repo:/root/.m2
         ports:
             - "${GATEWAY_SERVICE_PORT:?error}:8080"
             - "${GATEWAY_SERVICE_GRPC_PORT:?error}:50051"
@@ -32,6 +33,7 @@ services:
         # container_name: user-service
         volumes:
             - ./env/keys:/keys
+            - maven-repo:/root/.m2
         ports:
             - "${USER_SERVICE_PORT:?error}:8080"
         env_file:
@@ -83,6 +85,8 @@ services:
             context: ${ESCAPE_PATH}/product-service
             dockerfile: Dockerfile
         # container_name: product-service
+        volumes:
+            - maven-repo:/root/.m2
         ports:
             - "${PRODUCT_SERVICE_PORT:?error}:8080"
             - "${PRODUCT_SERVICE_GRPC_PORT:?error}:50051"
@@ -137,6 +141,8 @@ services:
             context: ${ESCAPE_PATH}/order-service
             dockerfile: Dockerfile
         # container_name: order-service
+        volumes:
+            - maven-repo:/root/.m2
         ports:
             - "${ORDER_SERVICE_PORT:?error}:8080"
             - "${ORDER_SERVICE_GRPC_PORT:?error}:50051"
@@ -190,6 +196,8 @@ services:
             context: ${ESCAPE_PATH}/payment-service
             dockerfile: Dockerfile
         # container_name: payment-service
+        volumes:
+            - maven-repo:/root/.m2
         ports:
             - "${PAYMENT_SERVICE_PORT:?error}:8080"
             - "${PAYMENT_SERVICE_GRPC_PORT:?error}:50051"
@@ -243,6 +251,8 @@ services:
             context: ${ESCAPE_PATH}/cart-service
             dockerfile: Dockerfile
         # container_name: cart-service
+        volumes:
+            - maven-repo:/root/.m2
         ports:
             - "${CART_SERVICE_PORT:?error}:8080"
             - "${CART_SERVICE_GRPC_PORT:?error}:50051"
@@ -296,6 +306,8 @@ services:
             context: ${ESCAPE_PATH}/statistics-service
             dockerfile: Dockerfile
         # container_name: statistics-service
+        volumes:
+            - maven-repo:/root/.m2
         ports:
             - "${STATISTICS_SERVICE_PORT:?error}:8080"
             - "${STATISTICS_SERVICE_GRPC_PORT:?error}:50051"
@@ -404,6 +416,15 @@ services:
             - ecmsp-full
         profiles: [kafka]
 
+    maven-init:
+        image: maven:3.9-eclipse-temurin-21
+        command: mvn dependency:go-offline -B
+        volumes:
+        - maven-repo:/root/.m2
+        - ${ESCAPE_PATH}/product-service/pom.xml:/app/pom.xml
+        working_dir: /app
+        profiles: ["init"]
+
 secrets:
     product-service-db-password:
         file: ./env/product-service/database-password.txt
@@ -429,6 +450,7 @@ volumes:
     cart-service-db:
     user-service-db:
     statistics-service-db:
+    maven-repo:
 
 networks:
   ecmsp-full:
